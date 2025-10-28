@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImmoSphere | Votre Portail Immobilier Moderne</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#fef7ff',
+                            500: '#a855f7',
+                            600: '#9333ea',
+                            700: '#7c3aed',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .property-card:hover .property-image {
+            transform: scale(1.05);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .search-shadow {
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .sticky-nav {
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body class="font-sans bg-gray-50 text-gray-800">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 sticky-nav border-b border-gray-200">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <!-- Logo -->
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-primary-500 to-secondary-500 flex items-center justify-center">
+                        <span class="material-icons text-white">apartment</span>
+                    </div>
+                    <span class="text-xl font-bold text-primary-700">Immo<span class="text-secondary-600">Sphere</span></span>
+                </div>
+
+                <!-- Navigation Desktop -->
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#" class="text-gray-600 hover:text-primary-600 font-medium transition-colors">Accueil</a>
+                    <a href="#" class="text-gray-600 hover:text-primary-600 font-medium transition-colors">Acheter</a>
+                    <a href="#" class="text-gray-600 hover:text-primary-600 font-medium transition-colors">Louer</a>
+                    <a href="#" class="text-gray-600 hover:text-primary-600 font-medium transition-colors">Vendre</a>
+                    <a href="#" class="text-gray-600 hover:text-primary-600 font-medium transition-colors">Services</a>
+                    <a href="#" class="text-gray-600 hover:text-primary-600 font-medium transition-colors">Contact</a>
+                </nav>
+
+                <!-- CTA Buttons -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <button class="px-4 py-2 text-primary-600 font-medium hover:text-primary-700 transition-colors">Connexion</button>
+                    <button class="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium">S'inscrire</button>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button class="md:hidden text-gray-600">
+                    <span class="material-icons text-2xl">menu</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white py-16 md:py-24">
+        <div class="container mx-auto px-4">
+            <div class="max-w-3xl mx-auto text-center fade-in">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6">Trouvez la propriété de vos <span class="text-yellow-300">rêves</span></h1>
+                <p class="text-xl mb-8 text-blue-100">Découvrez des milliers de biens immobiliers sélectionnés avec soin. Achetez, louez ou vendez en toute confiance.</p>
+                
+                <!-- Search Tabs -->
+                <div class="bg-white rounded-t-xl p-1 flex max-w-md mx-auto mb-8">
+                    <button class="flex-1 py-3 rounded-lg bg-primary-500 text-white font-medium">Acheter</button>
+                    <button class="flex-1 py-3 rounded-lg text-gray-600 font-medium">Louer</button>
+                    <button class="flex-1 py-3 rounded-lg text-gray-600 font-medium">Vendre</button>
+                </div>
+                
+                <!-- Search Form -->
+                <div class="bg-white rounded-xl p-6 search-shadow">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-2 text-left">Localisation</label>
+                            <div class="relative">
+                                <span class="material-icons absolute left-3 top-3 text-gray-400">place</span>
+                                <input type="text" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Ville, code postal...">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-2 text-left">Type de bien</label>
+                            <div class="relative">
+                                <span class="material-icons absolute left-3 top-3 text-gray-400">home</span>
+                                <select class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none">
+                                    <option>Tous les types</option>
+                                    <option>Appartement</option>
+                                    <option>Maison</option>
+                                    <option>Villa</option>
+                                    <option>Terrain</option>
+                                </select>
+                                <span class="material-icons absolute right-3 top-3 text-gray-400">expand_more</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-2 text-left">Prix min</label>
+                            <input type="number" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="0 €">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-2 text-left">Prix max</label>
+                            <input type="number" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="500 000 €">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-medium mb-2 text-left">Surface min</label>
+                            <input type="number" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="0 m²">
+                        </div>
+                    </div>
+                    <button class="w-full bg-primary-500 hover:bg-primary-600 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
+                        <span class="material-icons mr-2">search</span>
+                        Rechercher
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center max-w-2xl mx-auto mb-16">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Pourquoi choisir ImmoSphere ?</h2>
+                <p class="text-gray-600">Une expérience immobilière simplifiée, moderne et transparente</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="bg-gray-50 p-6 rounded-xl hover:shadow-lg transition-all duration-300">
+                    <div class="w-14 h-14 rounded-lg bg-primary-100 text-primary-500 flex items-center justify-center mb-4">
+                        <span class="material-icons text-2xl">verified</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Biens vérifiés</h3>
+                    <p class="text-gray-600">Tous nos biens sont inspectés et vérifiés pour garantir leur qualité et authenticité.</p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="bg-gray-50 p-6 rounded-xl hover:shadow-lg transition-all duration-300">
+                    <div class="w-14 h-14 rounded-lg bg-primary-100 text-primary-500 flex items-center justify-center mb-4">
+                        <span class="material-icons text-2xl">support_agent</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Conseillers dédiés</h3>
+                    <p class="text-gray-600">Un conseiller personnel vous accompagne à chaque étape de votre projet immobilier.</p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="bg-gray-50 p-6 rounded-xl hover:shadow-lg transition-all duration-300">
+                    <div class="w-14 h-14 rounded-lg bg-primary-100 text-primary-500 flex items-center justify-center mb-4">
+                        <span class="material-icons text-2xl">payments</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Transactions sécurisées</h3>
+                    <p class="text-gray-600">Toutes nos transactions sont protégées et sécurisées pour votre tranquillité d'esprit.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Properties -->
+    <section class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center mb-12">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Biens en vedette</h2>
+                    <p class="text-gray-600">Découvrez notre sélection exclusive de propriétés</p>
+                </div>
+                <a href="#" class="hidden md:flex items-center text-primary-500 font-medium hover:text-primary-600">
+                    Voir tout
+                    <span class="material-icons ml-1">arrow_forward</span>
+                </a>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Property 1 -->
+                <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 property-card">
+                    <div class="relative overflow-hidden">
+                        <div class="property-image h-48 bg-cover bg-center transition-transform duration-500" style="background-image: url('https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80')"></div>
+                        <div class="absolute top-4 right-4 bg-primary-500 text-white px-3 py-1 rounded-full text-sm font-medium">À vendre</div>
+                        <div class="absolute bottom-4 left-4 bg-white text-gray-800 px-3 py-1 rounded-full text-sm font-medium">450 000 €</div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2">Villa moderne avec piscine</h3>
+                        <p class="text-gray-600 mb-4 flex items-center">
+                            <span class="material-icons text-primary-500 text-sm mr-1">place</span>
+                            Nice, Côte d'Azur
+                        </p>
+                        <p class="text-gray-700 mb-6">Magnifique villa moderne de 150m² avec piscine privée et vue sur la mer. 4 chambres, 3 salles de bain.</p>
+                        <div class="flex justify-between text-gray-600 border-t border-gray-200 pt-4">
+                            <div class="flex items-center">
+                                <span class="material-icons text-primary-500 text-sm mr-1">hotel</span>
+                                <span>4 chambres</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="material-icons text-primary-500 text-sm mr-1">bathtub</span>
+                                <span>3 sdb</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="material-icons text-primary-500 text-sm mr-1">square_foot</span>
+                                <span>150m²</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Property 2 -->
+                <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 property-card">
+                    <div class="relative overflow-hidden">
+                        <div class="property-image h-48 bg-cover bg-center transition-transform duration-500" style="background-image: url('https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80')"></div>
+                        <div class="absolute top-4 right-4 bg-secondary-500 text-white px-3 py-1 rounded-full text-sm font-medium">À louer</div>
+                        <div class="absolute bottom-4 left-4 bg-white text-gray-800 px-3 py-1 rounded-full text-sm font-medium">1 200 €/mois</div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2">Appartement centre-ville</h3>
+                        <p class="text-gray-600 mb-4 flex items-center">
+                            <span class="material-icons text-primary-500 text-sm mr-1">place</span>
+                            Lyon, Rhône
+                        </p>
+                        <p class="text-gray-700 mb-6">Bel appartement de 75m² situé en plein cœur de Lyon. Proche de tous commerces et transports.</p>
+                        <div class="flex justify-between text-gray-600 border-t border-gray-200 pt-4">
+                            <div class="flex items-center">
+                                <span class="material-icons text-primary-500 text-sm mr-1">hotel</span>
+                                <span>3 chambres</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="material-icons text-primary-500 text-sm mr-1">bathtub</span>
+                                <span>1 sdb</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="material-icons text-primary-500 text-sm mr-1">square_foot</span>
+                                <span>75m²</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Property 3 -->
+                <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 property-card">
+                    <div class="relative overflow-hidden">
+                        <div class="property-image h-48 bg-cover bg-center transition-transform duration-500" style="background-image: url('https://images.unsplash.com/photo-1570129477492-45c003edd2be?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80')"></div>
+                        <div class="absolute top-4 right-4 bg-primary-500 text-white px-3 py-1 rounded-full text-sm font-medium">À vendre</div>
+                        <div class="absolute bottom-4 left-4 bg-white text-gray-800 px-3 py-1 rounded-full text-sm font-medium">285 000 €</div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2">Maison de ville rénovée</h3>
+                        <p class="text-gray-600 mb-4 flex items-center">
+                            <span class="material-icons text-primary-500 text-sm mr-1">place</span>
+                            Bordeaux, Gironde
+                        </p>
+                        <p class="text-gray-700 mb-6">Charmante maison de ville entièrement rénovée avec jardin privatif. Proche du centre historique.</p>
+                        <div class="flex justify-between text-gray-600 border-t border-gray-200 pt-4">
+                            <div class="flex items-center">
+                                <span class="material-icons text-primary-500 text-sm mr-1">hotel</span>
+                                <span>3 chambres</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="material-icons text-primary-500 text-sm mr-1">bathtub</span>
+                                <span>2 sdb</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="material-icons text-primary-500 text-sm mr-1">square_foot</span>
+                                <span>95m²</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-center md:hidden">
+                <a href="#" class="inline-flex items-center text-primary-500 font-medium hover:text-primary-600">
+                    Voir tout
+                    <span class="material-icons ml-1">arrow_forward</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="py-16 bg-primary-700 text-white">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                <div>
+                    <div class="text-4xl font-bold mb-2">5,000+</div>
+                    <p class="text-primary-100">Biens disponibles</p>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold mb-2">1,200+</div>
+                    <p class="text-primary-100">Transactions réalisées</p>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold mb-2">150+</div>
+                    <p class="text-primary-100">Villes couvertes</p>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold mb-2">98%</div>
+                    <p class="text-primary-100">Clients satisfaits</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center max-w-2xl mx-auto mb-12">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Ce que disent nos clients</h2>
+                <p class="text-gray-600">Découvrez les expériences de nos clients satisfaits</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Testimonial 1 -->
+                <div class="bg-gray-50 p-6 rounded-xl">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-500 font-bold mr-4">MD</div>
+                        <div>
+                            <h4 class="font-semibold">Marie Dubois</h4>
+                            <p class="text-gray-600 text-sm">Acheteuse à Paris</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-700 italic">"Grâce à ImmoSphere, j'ai trouvé l'appartement de mes rêves en seulement deux semaines. Le service client était exceptionnel et m'a accompagné à chaque étape."</p>
+                    <div class="flex text-yellow-400 mt-4">
+                        <span class="material-icons">star</span>
+                        <span class="material-icons">star</span>
+                        <span class="material-icons">star</span>
+                        <span class="material-icons">star</span>
+                        <span class="material-icons">star</span>
+                    </div>
+                </div>
+                
+                <!-- Testimonial 2 -->
+                <div class="bg-gray-50 p-6 rounded-xl">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-500 font-bold mr-4">PM</div>
+                        <div>
+                            <h4 class="font-semibold">Pierre Martin</h4>
+                            <p class="text-gray-600 text-sm">Vendeur à Lyon</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-700 italic">"J'ai vendu ma maison en un temps record et à un prix au-delà de mes attentes. Je recommande vivement ImmoSphere pour leur professionnalisme et leur efficacité."</p>
+                    <div class="flex text-yellow-400 mt-4">
+                        <span class="material-icons">star</span>
+                        <span class="material-icons">star</span>
+                        <span class="material-icons">star</span>
+                        <span class="material-icons">star</span>
+                        <span class="material-icons">star</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-gradient-to-r from-primary-600 to-secondary-600 text-white">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold mb-4">Prêt à trouver votre propriété idéale ?</h2>
+            <p class="text-xl mb-8 max-w-2xl mx-auto">Inscrivez-vous dès maintenant et accédez à des milliers d'annonces exclusives et à nos services personnalisés.</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button class="bg-white text-primary-600 hover:bg-gray-100 font-medium py-3 px-8 rounded-lg transition-colors">Créer un compte gratuit</button>
+                <button class="bg-transparent border border-white hover:bg-white hover:text-primary-600 font-medium py-3 px-8 rounded-lg transition-colors">En savoir plus</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white pt-12 pb-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <!-- Company Info -->
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-primary-500 to-secondary-500 flex items-center justify-center">
+                            <span class="material-icons text-white text-sm">apartment</span>
+                        </div>
+                        <span class="text-lg font-bold">Immo<span class="text-secondary-400">Sphere</span></span>
+                    </div>
+                    <p class="text-gray-400 mb-4">Votre partenaire de confiance pour toutes vos transactions immobilières. Achat, vente, location et gestion de biens.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary-500 transition-colors">
+                            <span class="material-icons text-sm">facebook</span>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary-500 transition-colors">
+                            <span class="material-icons text-sm">twitter</span>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary-500 transition-colors">
+                            <span class="material-icons text-sm">instagram</span>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary-500 transition-colors">
+                            <span class="material-icons text-sm">linkedin</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Liens rapides</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Accueil</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Acheter</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Louer</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Vendre</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Services</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Services -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Services</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Achat de biens</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Location</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Vente de biens</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Gestion immobilière</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Évaluation gratuite</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Contact -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact</h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-center text-gray-400">
+                            <span class="material-icons text-primary-500 mr-2 text-sm">place</span>
+                            123 Avenue des Champs-Élysées, 75008 Paris
+                        </li>
+                        <li class="flex items-center text-gray-400">
+                            <span class="material-icons text-primary-500 mr-2 text-sm">phone</span>
+                            +33 1 23 45 67 89
+                        </li>
+                        <li class="flex items-center text-gray-400">
+                            <span class="material-icons text-primary-500 mr-2 text-sm">email</span>
+                            contact@immosphere.fr
+                        </li>
+                        <li class="flex items-center text-gray-400">
+                            <span class="material-icons text-primary-500 mr-2 text-sm">schedule</span>
+                            Lun - Ven: 9h - 18h
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 pt-8 text-center text-gray-500 text-sm">
+                <p>&copy; 2023 ImmoSphere. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple animation on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const fadeElements = document.querySelectorAll('.fade-in');
+            
+            const fadeInOnScroll = function() {
+                fadeElements.forEach(element => {
+                    const elementTop = element.getBoundingClientRect().top;
+                    const elementVisible = 150;
+                    
+                    if (elementTop < window.innerHeight - elementVisible) {
+                        element.classList.add('fade-in');
+                    }
+                });
+            };
+            
+            // Initial check
+            fadeInOnScroll();
+            
+            // Check on scroll
+            window.addEventListener('scroll', fadeInOnScroll);
+            
+            // Search tabs functionality
+            const searchTabs = document.querySelectorAll('.gradient-bg button');
+            searchTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    searchTabs.forEach(t => t.classList.remove('bg-primary-500', 'text-white'));
+                    searchTabs.forEach(t => t.classList.add('text-gray-600'));
+                    this.classList.remove('text-gray-600');
+                    this.classList.add('bg-primary-500', 'text-white');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

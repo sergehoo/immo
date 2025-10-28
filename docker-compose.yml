@@ -1,0 +1,192 @@
+version: "3.9"
+
+networks:
+  internal: { driver: bridge }
+  proxy:    { external: true }
+
+volumes:
+  pgdata:
+  static_volume:
+  minio_data:
+
+x-logging-rotated: &logging_rotated
+  driver: "json-file"
+  options: { max-size: "10m", max-file: "3" }
+
+services:
+  # --- Postgres + PostGIS ---
+  immodb:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: Africa/Abidjan
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h 127.0.0.1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [internal]
+    restart: unless-stopped
+    logging: *logging_rotated
+
+  # --- Redis (Celery / Channels / cache) ---
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server","--save","","--appendonly","no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [internal]
+    restart: unless-stopped
+    logging: *logging_rotated
+
+  # --- MinIO (S3 + Console) ---
+  minio:
+    image: minio/minio:RELEASE.2025-02-18T16-25-55Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      TZ: Africa/Abidjan
+    volumes:
+      - minio_data:/data
+    networks:
+      - internal
+      - proxy
+    restart: unless-stopped
+    logging: *logging_rotated
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+
+      # === API S3 ===
+      - traefik.http.routers.minio-api.rule=Host(`${MINIO_API_HOST}`)
+      - traefik.http.routers.minio-api.entrypoints=websecure
+      - traefik.http.routers.minio-api.tls.certresolver=lets
+      - traefik.http.routers.minio-api.service=minio-api
+      - traefik.http.services.minio-api.loadbalancer.server.port=9000
+
+      # === Console ===
+      - traefik.http.routers.minio-console.rule=Host(`${MINIO_CONSOLE_HOST}`)
+      - traefik.http.routers.minio-console.entrypoints=websecure
+      - traefik.http.routers.minio-console.tls.certresolver=lets
+      - traefik.http.routers.minio-console.service=minio-console
+      - traefik.http.services.minio-console.loadbalancer.server.port=9001
+
+  # --- Init MinIO : bucket media + policy publique (optionnel) ---
+  minio-setup:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    environment:
+      MC_HOST_minio: "http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@minio:9000"
+      MINIO_MEDIA_BUCKET: ${MINIO_MEDIA_BUCKET:-media}
+      MINIO_PUBLIC_READ: ${MINIO_PUBLIC_READ:-true}
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      set -e;
+      i=0; until mc ls minio/ >/dev/null 2>&1 || [ $i -gt 60 ]; do i=$((i+1)); sleep 2; done;
+      mc ls minio/${MINIO_MEDIA_BUCKET} >/dev/null 2>&1 || mc mb minio/${MINIO_MEDIA_BUCKET};
+      if [ "${MINIO_PUBLIC_READ}" = "true" ]; then
+        mc anonymous set download minio/${MINIO_MEDIA_BUCKET};
+      fi
+      echo 'MinIO initialized.';
+    networks: [internal]
+    restart: "no"
+    logging: *logging_rotated
+
+  # --- Django/ASGI (gunicorn wsgi ici, remplaçable par daphne si websockets intensifs) ---
+  immoweb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    depends_on:
+      immodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      minio-setup:
+        condition: service_completed_successfully
+    command: >
+      sh -c "
+        python manage.py migrate --noinput &&
+        python manage.py collectstatic --noinput &&
+        gunicorn terra360.wsgi:application -b 0.0.0.0:8000 --workers 3 --timeout 90
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      - internal
+      - proxy
+    restart: unless-stopped
+    logging: *logging_rotated
+    volumes:
+      - static_volume:/app/staticfiles
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+
+      # Router HTTPS → immoweb:8000
+      # Dans .env : IMMOWEB_HOST=immobilier.example.com
+      - traefik.http.routers.immoweb.rule=Host(`${IMMOWEB_HOST}`)
+      - traefik.http.routers.immoweb.entrypoints=websecure
+      - traefik.http.routers.immoweb.tls.certresolver=lets
+      - traefik.http.routers.immoweb.middlewares=immoweb-sec-headers@docker,immoweb-compress@docker,immoweb-rl@docker
+
+      - traefik.http.services.immoweb-svc.loadbalancer.server.port=8000
+      - traefik.http.routers.immoweb.service=immoweb-svc
+
+      # Middlewares (sécurité + compression + rate limit)
+      - traefik.http.middlewares.immoweb-sec-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.immoweb-sec-headers.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.immoweb-sec-headers.headers.stsPreload=true
+      - traefik.http.middlewares.immoweb-sec-headers.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.immoweb-sec-headers.headers.frameDeny=true
+      - traefik.http.middlewares.immoweb-sec-headers.headers.referrerPolicy=strict-origin-when-cross-origin
+      - traefik.http.middlewares.immoweb-compress.compress=true
+      - traefik.http.middlewares.immoweb-rl.ratelimit.average=150
+      - traefik.http.middlewares.immoweb-rl.ratelimit.burst=250
+
+  # --- Celery Worker ---
+  immoworker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    command: celery -A terra360 worker -l info --prefetch-multiplier=1 --max-tasks-per-child=200 --queues=default,notifications
+    depends_on:
+      immodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [internal]
+    restart: unless-stopped
+    logging: *logging_rotated
+
+  # --- Celery Beat ---
+  immobeat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    command: celery -A terra360 beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      immodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [internal]
+    restart: unless-stopped
+    logging: *logging_rotated
