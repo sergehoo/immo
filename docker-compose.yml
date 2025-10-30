@@ -123,7 +123,7 @@ services:
         gunicorn terra360.wsgi:application -b 0.0.0.0:8000 --workers 3 --timeout 90
       "
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/healthz || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/healthz > /dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -149,15 +149,15 @@ services:
       - traefik.http.routers.immoweb.service=immoweb-svc
 
       # Middlewares (sécurité + compression + rate limit)
-#      - traefik.http.middlewares.immoweb-sec-headers.headers.stsSeconds=31536000
-#      - traefik.http.middlewares.immoweb-sec-headers.headers.stsIncludeSubdomains=true
-#      - traefik.http.middlewares.immoweb-sec-headers.headers.stsPreload=true
-#      - traefik.http.middlewares.immoweb-sec-headers.headers.contentTypeNosniff=true
-#      - traefik.http.middlewares.immoweb-sec-headers.headers.frameDeny=true
-#      - traefik.http.middlewares.immoweb-sec-headers.headers.referrerPolicy=strict-origin-when-cross-origin
-#      - traefik.http.middlewares.immoweb-compress.compress=true
-#      - traefik.http.middlewares.immoweb-rl.ratelimit.average=150
-#      - traefik.http.middlewares.immoweb-rl.ratelimit.burst=250
+      - traefik.http.middlewares.immoweb-sec-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.immoweb-sec-headers.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.immoweb-sec-headers.headers.stsPreload=true
+      - traefik.http.middlewares.immoweb-sec-headers.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.immoweb-sec-headers.headers.frameDeny=true
+      - traefik.http.middlewares.immoweb-sec-headers.headers.referrerPolicy=strict-origin-when-cross-origin
+      - traefik.http.middlewares.immoweb-compress.compress=true
+      - traefik.http.middlewares.immoweb-rl.ratelimit.average=150
+      - traefik.http.middlewares.immoweb-rl.ratelimit.burst=250
 
   # --- Celery Worker ---
   immoworker:
