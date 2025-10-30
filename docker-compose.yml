@@ -66,18 +66,18 @@ services:
       - traefik.docker.network=proxy
 
       # === API S3 ===
-      - traefik.http.routers.minio-api.rule=Host(`${MINIO_API_HOST}`)
-      - traefik.http.routers.minio-api.entrypoints=websecure
-      - traefik.http.routers.minio-api.tls.certresolver=lets
-      - traefik.http.routers.minio-api.service=minio-api
-      - traefik.http.services.minio-api.loadbalancer.server.port=9000
+      - traefik.http.routers.minioimmo-api.rule=Host(`${MINIO_API_HOST}`)
+      - traefik.http.routers.minioimmo-api.entrypoints=websecure
+      - traefik.http.routers.minioimmo-api.tls.certresolver=lets
+      - traefik.http.routers.minioimmo-api.service=minioimmo-api
+      - traefik.http.services.minioimmo-api.loadbalancer.server.port=9000
 
       # === Console ===
-      - traefik.http.routers.minio-console.rule=Host(`${MINIO_CONSOLE_HOST}`)
-      - traefik.http.routers.minio-console.entrypoints=websecure
-      - traefik.http.routers.minio-console.tls.certresolver=lets
-      - traefik.http.routers.minio-console.service=minio-console
-      - traefik.http.services.minio-console.loadbalancer.server.port=9001
+      - traefik.http.routers.minioimmo-console.rule=Host(`${MINIO_CONSOLE_HOST}`)
+      - traefik.http.routers.minioimmo-console.entrypoints=websecure
+      - traefik.http.routers.minioimmo-console.tls.certresolver=lets
+      - traefik.http.routers.minioimmo-console.service=minioimmo-console
+      - traefik.http.services.minioimmo-console.loadbalancer.server.port=9001
 
   # --- Init MinIO : bucket media + policy publique (optionnel) ---
   minio-setup:
