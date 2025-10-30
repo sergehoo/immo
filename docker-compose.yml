@@ -151,10 +151,10 @@ services:
       # Middlewares (sécurité + compression + rate limit)
       - traefik.http.middlewares.immoweb-sec-headers.headers.stsSeconds=31536000
       - traefik.http.middlewares.immoweb-sec-headers.headers.stsIncludeSubdomains=true
-#      - traefik.http.middlewares.immoweb-sec-headers.headers.stsPreload=true
-#      - traefik.http.middlewares.immoweb-sec-headers.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.immoweb-sec-headers.headers.stsPreload=true
+      - traefik.http.middlewares.immoweb-sec-headers.headers.contentTypeNosniff=true
       - traefik.http.middlewares.immoweb-sec-headers.headers.frameDeny=true
-#      - traefik.http.middlewares.immoweb-sec-headers.headers.referrerPolicy=strict-origin-when-cross-origin
+      - traefik.http.middlewares.immoweb-sec-headers.headers.referrerPolicy=strict-origin-when-cross-origin
       - traefik.http.middlewares.immoweb-compress.compress=true
       - traefik.http.middlewares.immoweb-rl.ratelimit.average=150
       - traefik.http.middlewares.immoweb-rl.ratelimit.burst=250
