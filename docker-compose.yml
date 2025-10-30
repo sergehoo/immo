@@ -141,7 +141,7 @@ services:
       # Router HTTPS → immoweb:8000
       # Dans .env : IMMOWEB_HOST=immobilier.example.com
       - traefik.http.routers.immoweb.rule=Host(`${IMMOWEB_HOST}`)
-      - traefik.http.routers.immoweb.entrypoints=websecure
+      - traefik.http.routers.immoweb.entrypoints=websecure,debug1934
       - traefik.http.routers.immoweb.tls.certresolver=lets
       - traefik.http.routers.immoweb.middlewares=immoweb-sec-headers@docker,immoweb-compress@docker,immoweb-rl@docker
 
