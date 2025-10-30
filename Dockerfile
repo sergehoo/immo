@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     TZ=Africa/Abidjan
 
-# Outils système + libs SIG (GDAL/PROJ/GEOS) + libpq (PostgreSQL)
+# --- Outils système + dépendances géospatiales ---
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gdal-bin libgdal-dev \
@@ -16,31 +16,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-# Facilite la compilation de certaines wheels GDAL si besoin
 ENV CPLUS_INCLUDE_PATH=/usr/include/gdal \
     C_INCLUDE_PATH=/usr/include/gdal
 
-# Crée un user non-root
-RUN useradd -m -u 1000 appuser
+# --- Crée un utilisateur non-root unique ---
+RUN adduser --disabled-password --gecos '' app
 WORKDIR /app
 
-# Dépendances Python
-# Assure-toi d'avoir psycopg/psycopg2, django-storages, boto3 dans requirements.txt
+# --- Installation des dépendances Python ---
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
-# Crée un user non-root
-RUN adduser --disabled-password --gecos '' app
 
-# Prépare les dossiers et droits
-RUN mkdir -p /vol/static /vol/media && chown -R app:app /vol && chmod -R 755 /vol
-
-USER app
-# Code de l'app
+# --- Copie du code source ---
 COPY . .
 
-# Droits
-RUN chown -R appuser:appuser /app
-USER appuser
+# --- Prépare le dossier staticfiles ---
+RUN mkdir -p /app/staticfiles /app/media && \
+    chown -R app:app /app && \
+    chmod -R 755 /app/staticfiles /app/media
 
-# Par défaut : Gunicorn (le docker-compose fera migrate/collectstatic avant)
+USER app
+
+# --- Commande par défaut (le docker-compose exécutera migrate/collectstatic avant) ---
 CMD ["gunicorn", "terra360.wsgi:application", "-b", "0.0.0.0:8000", "--workers", "3", "--timeout", "90"]
