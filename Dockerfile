@@ -28,7 +28,13 @@ WORKDIR /app
 # Assure-toi d'avoir psycopg/psycopg2, django-storages, boto3 dans requirements.txt
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
+# Crée un user non-root
+RUN adduser --disabled-password --gecos '' app
 
+# Prépare les dossiers et droits
+RUN mkdir -p /vol/static /vol/media && chown -R app:app /vol && chmod -R 755 /vol
+
+USER app
 # Code de l'app
 COPY . .
 
