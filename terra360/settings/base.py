@@ -222,7 +222,10 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # ========== Static & Media ==========
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+# Ne déclare STATICFILES_DIRS que si le dossier existe (évite W004 en prod)
+_static_dir = BASE_DIR / "static"
+if _static_dir.exists():
+    STATICFILES_DIRS = [_static_dir]
 # WhiteNoise: compression + manifest
 STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
@@ -233,25 +236,43 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # ========== MinIO / S3 (django-storages) ==========
 MINIO_ENABLED = env_bool("MINIO_ENABLED", True)
+# ========== MinIO / S3 (django-storages) ==========
 if MINIO_ENABLED:
-    # Active la storage backend S3
+    # Default file storage -> S3/MinIO
     STORAGES["default"] = {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}
 
     AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", os.getenv("MINIO_ROOT_USER", "minioadmin"))
     AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", os.getenv("MINIO_ROOT_PASSWORD", "minioadmin"))
     AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "media")
+
+    # Endpoint interne (service Docker) par défaut
     AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL", "http://minio:9000")
     AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")
     AWS_S3_SIGNATURE_VERSION = os.getenv("AWS_S3_SIGNATURE_VERSION", "s3v4")
-    AWS_S3_ADDRESSING_STYLE = os.getenv("AWS_S3_ADDRESSING_STYLE", "path")  # 'auto' | 'virtual' | 'path'
-    AWS_S3_VERIFY = env_bool("AWS_S3_VERIFY", False)
-    AWS_QUERYSTRING_AUTH = env_bool("AWS_QUERYSTRING_AUTH", False)  # False → URLs simples si bucket public
-    AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL", "public-read")  # si bucket rendu public par policy
+    AWS_S3_ADDRESSING_STYLE = os.getenv("AWS_S3_ADDRESSING_STYLE", "path")  # 'path' recommandé pour MinIO
+    AWS_S3_VERIFY = env_bool("AWS_S3_VERIFY", False)  # souvent False derrière Traefik auto-signed lors des tests
 
-    # Domaine public (si tu frontes MinIO derrière un domaine/CDN)
-    AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN")  # ex: cdn.example.com
+    # URLs publiques signées ? (laisse False si bucket public et Traefik en HTTPS)
+    AWS_QUERYSTRING_AUTH = env_bool("AWS_QUERYSTRING_AUTH", False)
+    AWS_DEFAULT_ACL = os.getenv("AWS_DEFAULT_ACL", "public-read")
+
+    # Empêche l’écrasement si 2 fichiers ont le même nom
+    AWS_S3_FILE_OVERWRITE = env_bool("AWS_S3_FILE_OVERWRITE", False)
+    # (Optionnel) cache-control par défaut
+    AWS_S3_OBJECT_PARAMETERS = {
+        "CacheControl": "max-age=31536000, s-maxage=31536000, public",
+    }
+
+    # Si tu exposes MinIO via Traefik avec un domaine public :
+    # ex. AWS_S3_CUSTOM_DOMAIN = "minioimmo.afriqconsulting.site/<BUCKET>" (si policy publique)
+    AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN")  # ex: "minioimmo.afriqconsulting.site/media"
     if AWS_S3_CUSTOM_DOMAIN:
-        MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+        # Forcer MEDIA_URL sur ce domaine (évite de construire des URLs internes)
+        MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN.strip('/')}/"
+    else:
+        # Sinon, MEDIA_URL calculée proprement en path-style
+        _ep = AWS_S3_ENDPOINT_URL.rstrip("/")
+        MEDIA_URL = f"{_ep}/{AWS_STORAGE_BUCKET_NAME}/"
 
 # ========== Emails ==========
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
