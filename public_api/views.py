@@ -12,12 +12,12 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.views import APIView
-
+from rest_framework.permissions import IsAuthenticated, AllowAny
 # Permissions (import si déjà présents, sinon fallback)
 try:
     from .permissions import RoleRequired, IsOwnerOrReadOnly
 except Exception:
-    from rest_framework.permissions import BasePermission, SAFE_METHODS, AllowAny, IsAuthenticated
+    from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAuthenticated
 
 
     class IsOwnerOrReadOnly(BasePermission):
