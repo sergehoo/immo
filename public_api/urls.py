@@ -45,17 +45,19 @@ router.register(r"amenities", AmenityViewSet, basename="amenity")
 router.register(r"valuations", ValuationViewSet, basename="valuation")
 
 urlpatterns = [
-    path("", include(router.urls)),
-    # Auth JWT
-    path("auth/login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    path("auth/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
+                  path("", include(router.urls)),
+                  # Auth JWT
+                  path("auth/login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+                  path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+                  path("auth/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
+                  # Register + Me + Profile
+                  path("auth/signup/", RegisterView.as_view(), name="register"),
+                  path("auth/me/", MeView.as_view(), name="me"),
+                  path("auth/profile/", MyProfileView.as_view(), name="my_profile"),
 
-    # Register + Me + Profile
-    path("auth/signup/", RegisterView.as_view(), name="register"),
-    path("auth/me/", MeView.as_view(), name="me"),
-    path("auth/profile/", MyProfileView.as_view(), name="my_profile"),
-]+ static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+                  path('home/', HomeView.as_view(), name='home'),
+                  path('summary/', SummaryView.as_view(), name='summary'),
+                  path('search/suggest/', SearchSuggestView.as_view(), name='search-suggest'),
+              ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-

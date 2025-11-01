@@ -11,12 +11,13 @@ from rest_framework import viewsets, mixins, permissions, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.views import APIView
 
 # Permissions (import si déjà présents, sinon fallback)
 try:
     from .permissions import RoleRequired, IsOwnerOrReadOnly
 except Exception:
-    from rest_framework.permissions import BasePermission, SAFE_METHODS
+    from rest_framework.permissions import BasePermission, SAFE_METHODS, AllowAny, IsAuthenticated
 
 
     class IsOwnerOrReadOnly(BasePermission):
@@ -235,6 +236,83 @@ class VisitRequestViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class HomeView(APIView):
+    """
+    GET /home/
+    Renvoie exactement la forme attendue par ton écran Home.
+    Tu peux brancher ça sur des modèles (Banners, etc.) ou laisser statique/paramétrable.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        payload = {
+            "banners": [
+                {"id": "b1", "title": "Investissez malin", "subtitle": "Rendements locatifs jusqu’à 12%",
+                 "cta": "Explorer", "to": "/#listings", "icon": "trending-up"},
+                {"id": "b2", "title": "Nouveautés", "subtitle": "Annonces fraîchement publiées", "cta": "Voir",
+                 "to": "/#listings?ordering=-published_at", "icon": "flash"},
+            ],
+            "quick_actions": [
+                {"id": "qa1", "icon": "map", "label": "Carte", "to": "/#map", "gradient": True},
+                {"id": "qa2", "icon": "heart", "label": "Favoris", "to": "/favorites"},
+                {"id": "qa3", "icon": "calendar", "label": "Visites", "to": "/visits"},
+                {"id": "qa4", "icon": "filter", "label": "Filtres", "to": "/#listings"},
+            ],
+            "districts": [
+                {"id": "d1", "label": "Cocody", "cover": "https://picsum.photos/300/300?1"},
+                {"id": "d2", "label": "Plateau", "cover": "https://picsum.photos/300/300?2"},
+                {"id": "d3", "label": "Marcory", "cover": "https://picsum.photos/300/300?3"},
+            ],
+            "categories": [
+                {"id": "all", "label": "Tout", "icon": "grid"},
+                {"id": "rent", "label": "Location", "icon": "pricetag"},
+                {"id": "sell", "label": "Vente", "icon": "cash"},
+                {"id": "featured", "label": "Vedettes", "icon": "star"},
+                {"id": "new", "label": "Nouveaux", "icon": "flash"},
+            ],
+            "map_teaser": {
+                "image": "https://picsum.photos/900/600?map",
+                "title": "Explorer sur la carte",
+                "subtitle": "Localisez rapidement les biens proches de vous",
+                "to": "/#map"
+            }
+        }
+        return Response(payload)
+
+
+class SummaryView(APIView):
+    """
+    GET /summary/
+    { favorites_count, visit_requests_count }
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        fav_count = FavoriteListing.objects.filter(user=request.user).count()
+        visits_count = VisitRequest.objects.filter(user=request.user).exclude(status=VisitRequest.CANCELLED).count()
+        return Response({"favorites_count": fav_count, "visit_requests_count": visits_count})
+
+
+class SearchSuggestView(APIView):
+    """
+    GET /search/suggest/?q=pla
+    => ["Plateau", "Marcory", "Cocody", ...]
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        q = (request.query_params.get("q") or "").strip()
+        if not q:
+            return Response([])
+        cities = (
+            Listing.objects.select_related("unit__property")
+            .filter(unit__property__city__icontains=q)
+            .values_list("unit__property__city", flat=True)
+            .distinct()[:8]
+        )
+        return Response(list(cities))
 
 
 # ============

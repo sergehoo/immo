@@ -124,6 +124,19 @@ class VisitRequestSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "user", "status"]
 
 
+class HomeSerializer(serializers.Serializer):
+    banners = serializers.ListField(child=serializers.DictField(), allow_empty=True)
+    quick_actions = serializers.ListField(child=serializers.DictField(), allow_empty=True)
+    districts = serializers.ListField(child=serializers.DictField(), allow_empty=True)
+    categories = serializers.ListField(child=serializers.DictField(), allow_empty=True)
+    map_teaser = serializers.DictField(allow_null=True)
+
+
+class SummarySerializer(serializers.Serializer):
+    favorites_count = serializers.IntegerField()
+    visit_requests_count = serializers.IntegerField()
+
+
 class ValuationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Valuation
