@@ -10,7 +10,7 @@ from billing.views import RentInvoiceViewSet
 from leasing.views import LeaseContractViewSet
 from maintenance.views import MaintenanceTicketViewSet
 from public_api.views import PartyViewSet, UnitViewSet, ListingViewSet, FavoriteListingViewSet, VisitRequestViewSet, \
-    AmenityViewSet, ValuationViewSet
+    AmenityViewSet, ValuationViewSet, HomeView, SummaryView, SearchSuggestView
 from public_api.views import PropertyViewSet
 
 router = DefaultRouter()
