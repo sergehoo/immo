@@ -91,20 +91,25 @@ class UnitSerializer(serializers.ModelSerializer):
 
 class ListingSerializer(serializers.ModelSerializer):
     unit = UnitSerializer(read_only=True)
-    unit_id = serializers.PrimaryKeyRelatedField(
-        source="unit", queryset=Unit.objects.select_related("property"), write_only=True
-    )
+    property_city = serializers.CharField(source="unit.property.city", read_only=True)
+    property_district = serializers.CharField(source="unit.property.address", read_only=True)  # à adapter si tu as district
+    cover_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Listing
-        fields = [
-            "id", "unit", "unit_id", "listing_type", "price", "currency",
-            "description", "is_active", "is_featured", "available_from",
-            "published_at", "views_count",
-        ]
-        read_only_fields = ["published_at", "views_count"]
+        fields = (
+            "id", "listing_type", "price", "currency", "description",
+            "is_active", "is_featured", "available_from", "published_at",
+            "views_count", "unit", "property_city", "property_district",
+            "cover_image",
+        )
 
-
+    def get_cover_image(self, obj):
+        # si tu as PropertyImage ou UnitImage, renvoie la première, sinon None
+        img = getattr(obj.unit, "images", None)
+        if img and img.exists():
+            return img.first().image.url
+        return None
 class FavoriteListingSerializer(serializers.ModelSerializer):
     listing = ListingSerializer(read_only=True)
     listing_id = serializers.PrimaryKeyRelatedField(

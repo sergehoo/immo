@@ -55,39 +55,52 @@ from .serializers import (
 # Filters
 # ============
 
+# ⬇︎ remplace ListingFilterSet par ceci
 class ListingFilterSet(filters.BaseFilterBackend):
-    """Filtres simples via query params (compatible avec DjangoFilterBackend si souhaité)."""
+    """Filtres compatibles avec le front (type, is_featured, search via DRF SearchFilter, ordering)."""
 
     def filter_queryset(self, request, queryset, view):
-        params = request.query_params
-        # Type (rent/sale)
-        lt = params.get("listing_type")
+        p = request.query_params
+
+        # Alias 'type' → listing_type
+        lt = p.get("type") or p.get("listing_type")
         if lt in {"rent", "sale"}:
             queryset = queryset.filter(listing_type=lt)
+
+        # Nouveau: is_featured
+        is_feat = p.get("is_featured")
+        if is_feat is not None:
+            val = is_feat.lower() in {"1", "true", "yes"}
+            queryset = queryset.filter(is_featured=val)
+
         # Prix
-        min_price = params.get("min_price")
-        max_price = params.get("max_price")
+        min_price = p.get("min_price")
+        max_price = p.get("max_price")
         if min_price:
             queryset = queryset.filter(price__gte=min_price)
         if max_price:
             queryset = queryset.filter(price__lte=max_price)
-        # Ville, type de propriété (via unit->property)
-        city = params.get("city")
+
+        # Ville / type de propriété
+        city = p.get("city")
         if city:
             queryset = queryset.filter(unit__property__city__icontains=city)
-        ptype = params.get("property_type")
+        ptype = p.get("property_type")
         if ptype:
             queryset = queryset.filter(unit__property__property_type=ptype)
+
         # Chambres
-        bedrooms = params.get("bedrooms")
+        bedrooms = p.get("bedrooms")
         if bedrooms:
             queryset = queryset.filter(unit__bedrooms__gte=bedrooms)
-        # Actives seulement (par défaut)
-        active = params.get("active", "true").lower()
+
+        # Actives par défaut
+        active = p.get("active", "true").lower()
         if active in {"true", "1"}:
             queryset = queryset.filter(is_active=True)
-        # Tri
-        ordering = params.get("ordering", "-published_at")
+
+        # Tri (front envoie '-published_at' pour l’onglet “Nouveaux”)
+        ordering = p.get("ordering", "-published_at")
         if ordering:
             queryset = queryset.order_by(ordering)
         return queryset
