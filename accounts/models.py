@@ -15,6 +15,7 @@ from phonenumber_field.modelfields import PhoneNumberField
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+
 # =============== #
 # Core User model #
 # =============== #
@@ -127,10 +128,10 @@ class UserProfile(TimeStampedModel):
 # ================= #
 
 class Company(TimeStampedModel):
-    LANDLORD = "landlord"        # propriétaire/bailleur
-    AGENCY = "agency"            # agence
-    CORPORATE = "corporate"      # client entreprise
-    DEVELOPER = "developer"      # promoteur
+    LANDLORD = "landlord"  # propriétaire/bailleur
+    AGENCY = "agency"  # agence
+    CORPORATE = "corporate"  # client entreprise
+    DEVELOPER = "developer"  # promoteur
     TYPES = [
         (LANDLORD, "Propriétaire / Bailleur"),
         (AGENCY, "Agence immobilière"),
@@ -350,7 +351,6 @@ class ScoutReferral(TimeStampedModel):
 # ========================== #
 # Signals: create defaults   #
 # ========================== #
-
 
 
 @receiver(post_save, sender=User)
