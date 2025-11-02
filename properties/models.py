@@ -5,6 +5,8 @@ from django.conf import settings
 from django.utils import timezone
 from django.core.validators import MinValueValidator
 from django.contrib.gis.db import models  # GeoDjango fields inclus
+from django.utils.text import slugify
+
 
 # =======================
 # Core : Property / Unit / Listing
@@ -20,11 +22,17 @@ class Property(models.Model):
     property_type = models.CharField(max_length=32, choices=TYPES)
     address = models.CharField(max_length=255, blank=True, null=True)
     city = models.CharField(max_length=120, blank=True, null=True)
+    # ➕ quartier / district pour correspondre à ton front
+    district = models.CharField(max_length=120, blank=True, null=True)
     country = models.CharField(max_length=120, default="Côte d'Ivoire")
     geom = models.PointField(geography=True, null=True, blank=True)
 
-    owner = models.ForeignKey("parties.Party", on_delete=models.SET_NULL, null=True, blank=True, related_name="owned_properties")
-    owner_user = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_owned_properties")
+    owner = models.ForeignKey("parties.Party", on_delete=models.SET_NULL, null=True, blank=True,
+                              related_name="owned_properties")
+    owner_user = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name="user_owned_properties")
+
+    slug = models.SlugField(max_length=280, blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -33,7 +41,15 @@ class Property(models.Model):
         indexes = [
             models.Index(fields=["property_type"]),
             models.Index(fields=["city"]),
+            models.Index(fields=["district"]),
         ]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = f"{self.title}-{self.city or ''}-{getattr(self, 'district', '')}".strip()
+            # garde simple ici, l’unicité sera garantie par la contrainte + migration de données
+            self.slug = slugify(base)[:260] or None
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
@@ -49,6 +65,7 @@ class Unit(models.Model):
 
     class Meta:
         unique_together = ("property", "name")
+        verbose_name = "l’unité louable/vendable (studio A, appart B, chambre…)"
         indexes = [
             models.Index(fields=["is_available"]),
             models.Index(fields=["bedrooms", "bathrooms"]),
@@ -69,6 +86,10 @@ class Listing(models.Model):
     currency = models.CharField(max_length=8, default="XOF")
     description = models.TextField(blank=True, null=True)
 
+    # ➕ Dénormalisation pour la recherche rapide côté front
+    property_city = models.CharField(max_length=120, blank=True, null=True, db_index=True)
+    property_district = models.CharField(max_length=120, blank=True, null=True, db_index=True)
+
     # Options d’annonces
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
@@ -82,6 +103,7 @@ class Listing(models.Model):
             models.Index(fields=["is_active", "is_featured"]),
             models.Index(fields=["published_at"]),
             models.Index(fields=["price"]),
+            models.Index(fields=["property_city", "property_district"]),
         ]
 
     def __str__(self):
@@ -99,7 +121,7 @@ class Amenity(models.Model):
 
     class Meta:
         verbose_name = "Équipement"
-        verbose_name_plural = "Équipements"
+        verbose_name_plural = "Équipements par unité"
         ordering = ["label"]
 
     def __str__(self):
@@ -142,9 +164,11 @@ def property_image_upload_to(instance: "PropertyImage", filename: str) -> str:
     import uuid
     return f"properties/{instance.property_id}/images/{uuid.uuid4()}-{filename}"
 
+
 def unit_image_upload_to(instance: "UnitImage", filename: str) -> str:
     import uuid
     return f"properties/{instance.unit.property_id}/units/{instance.unit_id}/images/{uuid.uuid4()}-{filename}"
+
 
 def property_doc_upload_to(instance: "PropertyDocument", filename: str) -> str:
     import uuid

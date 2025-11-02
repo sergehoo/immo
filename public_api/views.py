@@ -1,18 +1,26 @@
 # /Users/ogahserge/Documents/terra360/public_api/views.py
+from datetime import timedelta
+
 from django.shortcuts import render
 
 # Create your views here.
 # public_api/views.py
 
 
-from django.db.models import Count, Avg, Min, Max
+from django.db.models import Count, Avg, Min, Max, Q
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.utils.text import slugify
+from django.views.decorators.cache import cache_page
 from rest_framework import viewsets, mixins, permissions, filters
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
+
+from .models import Banner, QuickAction, Category, MapTeaser
+
 # Permissions (import si déjà présents, sinon fallback)
 try:
     from .permissions import RoleRequired, IsOwnerOrReadOnly
@@ -47,7 +55,7 @@ from .serializers import (
     PartySerializer,
     PropertySerializer, UnitSerializer, ListingSerializer,
     AmenitySerializer, FavoriteListingSerializer, VisitRequestSerializer,
-    ValuationSerializer
+    ValuationSerializer, BannerSerializer, QuickActionSerializer, CategorySerializer, MapTeaserSerializer
 )
 
 
@@ -251,46 +259,132 @@ class VisitRequestViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
+@method_decorator(cache_page(60), name="get")  # cache 60s
 class HomeView(APIView):
     """
     GET /home/
-    Renvoie exactement la forme attendue par ton écran Home.
-    Tu peux brancher ça sur des modèles (Banners, etc.) ou laisser statique/paramétrable.
+    Renvoie la forme attendue par l'écran Home, mais en dynamique.
     """
     permission_classes = [AllowAny]
 
     def get(self, request):
-        payload = {
-            "banners": [
+        now = timezone.now()
+
+        # ---------- BANNERS ----------
+        banners_qs = (
+            Banner.objects
+            .filter(active=True)
+            .filter(Q(starts_at__isnull=True) | Q(starts_at__lte=now))
+            .filter(Q(ends_at__isnull=True) | Q(ends_at__gte=now))
+            .order_by("order", "id")
+            .only("id", "title", "subtitle", "cta", "to", "icon", "image")
+        )
+        banners = BannerSerializer(banners_qs, many=True).data
+        if not banners:
+            banners = [
                 {"id": "b1", "title": "Investissez malin", "subtitle": "Rendements locatifs jusqu’à 12%",
                  "cta": "Explorer", "to": "/#listings", "icon": "trending-up"},
                 {"id": "b2", "title": "Nouveautés", "subtitle": "Annonces fraîchement publiées", "cta": "Voir",
                  "to": "/#listings?ordering=-published_at", "icon": "flash"},
-            ],
-            "quick_actions": [
+            ]
+
+        # ---------- QUICK ACTIONS ----------
+        qa_qs = (
+            QuickAction.objects
+            .filter(active=True)
+            .order_by("order", "id")
+            .only("id", "icon", "label", "to", "gradient", "color")
+        )
+        quick_actions = QuickActionSerializer(qa_qs, many=True).data
+        if not quick_actions:
+            quick_actions = [
                 {"id": "qa1", "icon": "map", "label": "Carte", "to": "/#map", "gradient": True},
                 {"id": "qa2", "icon": "heart", "label": "Favoris", "to": "/favorites"},
                 {"id": "qa3", "icon": "calendar", "label": "Visites", "to": "/visits"},
                 {"id": "qa4", "icon": "filter", "label": "Filtres", "to": "/#listings"},
-            ],
-            "districts": [
-                {"id": "d1", "label": "Cocody", "cover": "https://picsum.photos/300/300?1"},
-                {"id": "d2", "label": "Plateau", "cover": "https://picsum.photos/300/300?2"},
-                {"id": "d3", "label": "Marcory", "cover": "https://picsum.photos/300/300?3"},
-            ],
-            "categories": [
+            ]
+
+        # ---------- CATEGORIES ----------
+        cat_qs = (
+            Category.objects
+            .filter(active=True)
+            .order_by("order", "id")
+            .only("id", "slug", "label", "icon", "color")
+        )
+        categories = CategorySerializer(cat_qs, many=True).data
+        if not categories:
+            categories = [
                 {"id": "all", "label": "Tout", "icon": "grid"},
                 {"id": "rent", "label": "Location", "icon": "pricetag"},
                 {"id": "sell", "label": "Vente", "icon": "cash"},
                 {"id": "featured", "label": "Vedettes", "icon": "star"},
                 {"id": "new", "label": "Nouveaux", "icon": "flash"},
-            ],
-            "map_teaser": {
+            ]
+
+        # ---------- DISTRICTS (tendances) ----------
+        # Idée: "tendance" = où il y a le plus d'annonces récentes
+        recent_since = now - timedelta(days=30)
+
+        district_counts = (
+            Listing.objects.filter(published_at__gte=recent_since)
+            .values("property_city", "property_district")
+            .annotate(n=Count("id"))
+            .order_by("-n")[:12]
+        )
+
+        districts = []
+        for i, row in enumerate(district_counts):
+            label = row.get("property_district") or row.get("property_city") or "Inconnu"
+            if not label:
+                continue
+            districts.append({
+                "id": slugify(label) or f"d{i + 1}",
+                "label": label,
+                # si tu as un champ 'district.cover' ailleurs, remplace ceci:
+                "cover": f"https://picsum.photos/300/300?seed={slugify(label) or i}",
+            })
+
+        # Fallback si pas d'activité récente
+        if not districts:
+            # essaie de proposer des districts par défaut ou des plus anciens
+            fallback_agg = (
+                Listing.objects
+                .values("property_city", "property_district")
+                .annotate(n=Count("id"))
+                .order_by("-n")[:6]
+            )
+            for i, row in enumerate(fallback_agg):
+                label = row.get("property_district") or row.get("property_city") or f"Zone {i + 1}"
+                districts.append({
+                    "id": slugify(label) or f"d{i + 1}",
+                    "label": label,
+                    "cover": f"https://picsum.photos/300/300?seed={slugify(label) or i}",
+                })
+
+        # ---------- MAP TEASER ----------
+        teaser_obj = (
+            MapTeaser.objects
+            .filter(active=True)
+            .order_by("order", "id")
+            .only("title", "subtitle", "image", "to")
+            .first()
+        )
+        if teaser_obj:
+            map_teaser = MapTeaserSerializer(teaser_obj).data
+        else:
+            map_teaser = {
                 "image": "https://picsum.photos/900/600?map",
                 "title": "Explorer sur la carte",
                 "subtitle": "Localisez rapidement les biens proches de vous",
-                "to": "/#map"
+                "to": "/#map",
             }
+
+        payload = {
+            "banners": banners,
+            "quick_actions": quick_actions,
+            "districts": districts,
+            "categories": categories,
+            "map_teaser": map_teaser,
         }
         return Response(payload)
 

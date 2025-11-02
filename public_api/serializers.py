@@ -14,6 +14,7 @@ from properties.models import (
     PropertyImage, UnitImage, PropertyDocument,
     FavoriteListing, VisitRequest, Valuation
 )
+from public_api.models import Banner, QuickAction, Category, MapTeaser
 
 
 # =============== Parties ===============
@@ -92,7 +93,8 @@ class UnitSerializer(serializers.ModelSerializer):
 class ListingSerializer(serializers.ModelSerializer):
     unit = UnitSerializer(read_only=True)
     property_city = serializers.CharField(source="unit.property.city", read_only=True)
-    property_district = serializers.CharField(source="unit.property.address", read_only=True)  # à adapter si tu as district
+    property_district = serializers.CharField(source="unit.property.address",
+                                              read_only=True)  # à adapter si tu as district
     cover_image = serializers.SerializerMethodField()
 
     class Meta:
@@ -110,6 +112,8 @@ class ListingSerializer(serializers.ModelSerializer):
         if img and img.exists():
             return img.first().image.url
         return None
+
+
 class FavoriteListingSerializer(serializers.ModelSerializer):
     listing = ListingSerializer(read_only=True)
     listing_id = serializers.PrimaryKeyRelatedField(
@@ -129,12 +133,38 @@ class VisitRequestSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "user", "status"]
 
 
-class HomeSerializer(serializers.Serializer):
-    banners = serializers.ListField(child=serializers.DictField(), allow_empty=True)
-    quick_actions = serializers.ListField(child=serializers.DictField(), allow_empty=True)
-    districts = serializers.ListField(child=serializers.DictField(), allow_empty=True)
-    categories = serializers.ListField(child=serializers.DictField(), allow_empty=True)
-    map_teaser = serializers.DictField(allow_null=True)
+# class HomeSerializer(serializers.Serializer):
+#     banners = serializers.ListField(child=serializers.DictField(), allow_empty=True)
+#     quick_actions = serializers.ListField(child=serializers.DictField(), allow_empty=True)
+#     districts = serializers.ListField(child=serializers.DictField(), allow_empty=True)
+#     categories = serializers.ListField(child=serializers.DictField(), allow_empty=True)
+#     map_teaser = serializers.DictField(allow_null=True)
+
+class BannerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Banner
+        fields = ("id", "title", "subtitle", "cta", "to", "icon", "image")
+
+
+class QuickActionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuickAction
+        fields = ("id", "icon", "label", "to", "gradient", "color")
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    # on renvoie id = slug pour coller aux filtres du front (rent/sell/featured/new/all)
+    id = serializers.CharField(source="slug")
+
+    class Meta:
+        model = Category
+        fields = ("id", "label", "icon", "color")
+
+
+class MapTeaserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MapTeaser
+        fields = ("image", "title", "subtitle", "to")
 
 
 class SummarySerializer(serializers.Serializer):

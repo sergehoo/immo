@@ -1,13 +1,16 @@
 # properties/admin.py
 from django.contrib import admin
+from django.utils import timezone
 from django.utils.html import format_html
 
+from public_api.models import Banner
 from .models import (
     Property, Unit, Listing,
     Amenity, PropertyAmenity, UnitAmenity,
     PropertyImage, UnitImage, PropertyDocument,
     FavoriteListing, VisitRequest, Valuation
 )
+
 
 # =========
 # Inlines
@@ -18,6 +21,7 @@ class UnitInline(admin.TabularInline):
     extra = 0
     fields = ("name", "bedrooms", "bathrooms", "size_m2", "is_available")
     show_change_link = True
+
 
 class PropertyImageInline(admin.TabularInline):
     model = PropertyImage
@@ -30,11 +34,13 @@ class PropertyImageInline(admin.TabularInline):
             return format_html('<img src="{}" style="height:60px;border-radius:6px"/>', obj.image.url)
         return "—"
 
+
 class PropertyDocumentInline(admin.TabularInline):
     model = PropertyDocument
     extra = 0
     fields = ("doc_type", "title", "file", "uploaded_at")
     readonly_fields = ("uploaded_at",)
+
 
 class PropertyAmenityInline(admin.TabularInline):
     model = PropertyAmenity
@@ -77,6 +83,7 @@ class UnitImageInline(admin.TabularInline):
             return format_html('<img src="{}" style="height:60px;border-radius:6px"/>', obj.image.url)
         return "—"
 
+
 class UnitAmenityInline(admin.TabularInline):
     model = UnitAmenity
     extra = 0
@@ -100,7 +107,8 @@ class UnitAdmin(admin.ModelAdmin):
 
 @admin.register(Listing)
 class ListingAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "listing_type", "price", "currency", "is_active", "is_featured", "published_at", "views_count")
+    list_display = (
+        "__str__", "listing_type", "price", "currency", "is_active", "is_featured", "published_at", "views_count")
     list_filter = ("listing_type", "is_active", "is_featured", "currency", "published_at")
     search_fields = ("unit__property__title", "unit__name", "description")
     autocomplete_fields = ("unit",)
@@ -167,6 +175,7 @@ class PropertyImageAdmin(admin.ModelAdmin):
         if obj and obj.image:
             return format_html('<img src="{}" style="height:40px;border-radius:6px"/>', obj.image.url)
         return "—"
+
     thumb.short_description = "Aperçu"
 
 
@@ -181,6 +190,7 @@ class UnitImageAdmin(admin.ModelAdmin):
         if obj and obj.image:
             return format_html('<img src="{}" style="height:40px;border-radius:6px"/>', obj.image.url)
         return "—"
+
     thumb.short_description = "Aperçu"
 
 
@@ -204,3 +214,104 @@ class ValuationAdmin(admin.ModelAdmin):
     search_fields = ("property__title", "valued_by__username")
     autocomplete_fields = ("property", "valued_by")
     ordering = ("-valued_at",)
+
+
+@admin.register(Banner)
+class BannerAdmin(admin.ModelAdmin):
+    # Liste
+    list_display = (
+        "title",
+        "icon",
+        "is_active",
+        "is_running",
+        "starts_at",
+        "ends_at",
+        "order",  # <- suppose que OrderedActiveModel fournit 'order'
+        "updated_at",  # <- idem: souvent présent (sinon supprime)
+    )
+    list_editable = ("is_active", "order")  # édition rapide
+    list_filter = (
+        "is_active",
+        ("starts_at", admin.DateFieldListFilter),
+        ("ends_at", admin.DateFieldListFilter),
+    )
+    search_fields = ("title", "subtitle", "cta", "to", "icon")
+    ordering = ("order", "-starts_at", "-id")
+    date_hierarchy = "starts_at"
+    actions = ["activer", "desactiver", "dupliquer"]
+    readonly_fields = ("preview_image", "is_running")
+
+    # Formulaire de détail
+    fieldsets = (
+        ("Contenu", {
+            "fields": ("title", "subtitle", "cta", "to", "icon", "image", "preview_image"),
+        }),
+        ("Planning & statut", {
+            "fields": ("is_active", "starts_at", "ends_at", "is_running"),
+        }),
+        ("Ordre d’affichage", {
+            "fields": ("order",),
+        }),
+    )
+
+    def is_running(self, obj: Banner) -> bool:
+        """
+        Actif *et* dans la fenêtre temporelle courante.
+        """
+        if not obj.is_active:
+            return False
+        now = timezone.now()
+        if obj.starts_at and obj.starts_at > now:
+            return False
+        if obj.ends_at and obj.ends_at < now:
+            return False
+        return True
+
+    is_running.boolean = True
+    is_running.short_description = "Actif maintenant"
+
+    def preview_image(self, obj: Banner):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-width:420px;max-height:180px;border-radius:8px;object-fit:cover;border:1px solid #eee;" />',
+                obj.image,
+            )
+        return "—"
+
+    preview_image.short_description = "Aperçu"
+
+    # Actions
+    def activer(self, request, queryset):
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f"{updated} bannière(s) activée(s).")
+
+    activer.short_description = "Activer les bannières sélectionnées"
+
+    def desactiver(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"{updated} bannière(s) désactivée(s).")
+
+    desactiver.short_description = "Désactiver les bannières sélectionnées"
+
+    def dupliquer(self, request, queryset):
+        count = 0
+        for b in queryset:
+            b.pk = None  # clone
+            b.title = f"{b.title} (copie)"
+            # option: rendre inactive et pousser en bas de liste
+            try:
+                # si 'order' existe
+                max_order = Banner.objects.aggregate(m=admin.models.functions.Coalesce(
+                    admin.models.Max("order"), 0
+                ))["m"]
+                b.order = (max_order or 0) + 1
+            except Exception:
+                pass
+            b.is_active = False
+            b.starts_at = None
+            b.ends_at = None
+            b.save()
+            count += 1
+        self.message_user(request, f"{count} bannière(s) dupliquée(s).")
+
+    dupliquer.short_description = "Dupliquer les bannières sélectionnées"
